@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quantum Mobile Lab</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #38bdf8;
+            --green: #22c55e;
+            --gold: #f59e0b;
+            --red: #ef4444;
+            --text: #f1f5f9;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin: 0 0 1.5rem 0;
+            color: var(--accent);
+        }
+
+        /* Панель статистики */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .stat-label { font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+        .stat-value { font-size: 1.25rem; font-weight: bold; color: var(--gold); }
+
+        /* Прогресс-бар */
+        .stability-section { margin-bottom: 1.5rem; }
+        .bar-header { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 8px; }
+        .bar-outer { height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
+        #stab-fill { height: 100%; width: 100%; background: var(--green); transition: width 0.3s; }
+
+        /* Кнопки */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        button {            
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-money { background: var(--gold); color: #000; }
+        .btn-qubit { background: #818cf8; color: #fff; }
+        .btn-cool { background: var(--accent); color: #fff; }
+        .btn-win { background: var(--green); color: #fff; display: none; }
+
+        /* Адаптивность для планшетов и ПК */
+        @media (min-width: 480px) {
+            .controls { grid-template-columns: 1fr 1fr; }
+            .btn-money { grid-column: span 2; }
+            .btn-win { grid-column: span 2; }
+        }
+
+        /* Модальные окна */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.95); z-index: 100;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>Quantum Lab</h1>
+
+    <div class="stats-grid">
+        <div class="stat-item" style="grid-column: span 2;">
+            <span class="stat-label">БЮДЖЕТ</span>
+            <span id="money" class="stat-value">0$</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">КУБИТЫ</span>
+            <span id="qubits" class="stat-value">0 / 50</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">ТЕМП. (K)</span>
+            <span id="temp" class="stat-value">300</span>
+        </div>
+    </div>
+
+    <div class="stability-section">
+        <div class="bar-header">
+            <span>Стабильность</span>
+            <span id="stab-text">100%</span>
+        </div>
+        <div class="bar-outer">
+            <div id="stab-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+                <button class="btn-money" onclick="addMoney()">💰 ПОЛУЧИТЬ ГРАНТ (+50$)</button>
+        <button class="btn-qubit" id="btn-q" onclick="buyQubits()">⚛️ КУБИТЫ (-200$)</button>
+        <button class="btn-cool" id="btn-c" onclick="coolDown()">❄️ ОХЛАДИТЬ (-150$)</button>
+        <button class="btn-win" id="btn-win" onclick="winGame()">🚀 ЗАПУСТИТЬ</button>
+    </div>
+</div>
+
+<div id="win-overlay" class="overlay">
+    <h1 style="color: var(--green);">ПОБЕДА! 🏆</h1>
+    <p>Квантовое превосходство достигнуто.</p>
+    <button class="btn-money" onclick="location.reload()">ИГРАТЬ СНОВА</button>
+</div>
+
+<div id="fail-overlay" class="overlay">
+    <h1 style="color: var(--red);">ОШИБКА ⚠️</h1>
+    <p>Произошла декогеренция системы.</p>
+    <button class="btn-cool" onclick="location.reload()">ПОПРОБОВАТЬ СНОВА</button>
+</div>
+
+<script>
+    let money = 200;
+    let qubits = 0;
+    let temp = 300.0;
+    let stability = 100.0;
+    let active = true;
+
+    function update() {
+        document.getElementById('money').innerText = money + "$";
+        document.getElementById('qubits').innerText = qubits + " / 50";
+        document.getElementById('temp').innerText = temp.toFixed(2);
+        document.getElementById('stab-text').innerText = Math.floor(stability) + "%";
+        
+        const fill = document.getElementById('stab-fill');
+        fill.style.width = stability + "%";
+        
+        // Цвет шкалы
+        if(stability < 30) fill.style.background = 'var(--red)';
+        else if(stability < 60) fill.style.background = 'var(--gold)';
+        else fill.style.background = 'var(--green)';
+
+        // Кнопки
+        document.getElementById('btn-q').disabled = money < 200;
+        document.getElementById('btn-c').disabled = money < 150;
+        
+        // Условие появления кнопки "Запуск"
+        if(qubits >= 50 && temp < 0.1) {
+            document.getElementById('btn-win').style.display = 'flex';
+        }
+    }
+
+    function addMoney() { if(!active) return; money += 50; update(); }
+    
+    function buyQubits() {
+        if(money >= 200) {
+            money -= 200; qubits += 10; stability -= 15;
+            update();
+        }
+    }
+
+    function coolDown() {
+        if(money >= 150) {
+            money -= 150; temp /= 10; stability = Math.min(100, stability + 10);
+            update();
+        }
+    }
+
+    function winGame() {
+        active = false;
+        document.getElementById('win-overlay').style.display = 'flex';
+    }
+
+    // Игровой цикл
+    setInterval(() => {
+        if(!active) return;
+        
+        // Стабильность падает от кубитов
+        stability -= (0.2 + (qubits * 0.05));
+        
+        // Температура потихоньку растет
+        temp += 0.01;
+
+        if(stability <= 0) {
+            active = false;
+            document.getElementById('fail-overlay').style.display = 'flex';
+        }
+        update();
+    }, 100);
+
+    update();
+</script>
+
+</body>
+</html>
